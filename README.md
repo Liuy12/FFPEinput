@@ -1,14 +1,14 @@
 # FFPEinput
 
-The tutorial aims to provide RNA input recommendations for FFPE samples in order to generate adequate data for RNA-seq. 
+The tutorial aims to provide RNA input recommendations (RNA concentration and library concentration) for FFPE samples in order to generate adequate data for RNA-seq. Please refer to our [publication](https://assets.researchsquare.com/files/rs-1428294/v1/5f199ab7-8b30-4cf0-a3eb-296477271c8b.pdf?c=1647869411) for more details
 
 ## Background
 
-Formalin-fixed, paraffin-embedded (FFPE) tissues have many advantages for identification of risk biomarkers, including wide availability and potential for extended follow-up endpoints. However, RNA derived from archival FFPE samples has limited quality. Here we identified parameters that determine which FFPE samples have the potential for successful RNA extraction, library preparation, and generation of usable RNAseq data.
+Formalin-fixed, paraffin-embedded (FFPE) tissues have many advantages for identification of risk biomarkers, including wide availability and potential for extended follow-up endpoints. However, RNA derived from archival FFPE samples has limited quality. There are limited studies that provide insight for selection of FFPE samples of adequate quality. Here we identified parameters that determine which FFPE samples have the potential for successful RNA extraction, library preparation, and generation of usable RNAseq data.
 
 ## Installation
 
-All analysis is performed in R. If you don't have it, uou can download R from [here](https://www.r-project.org/). Then you will need to install required R package.
+All analysis is performed in R. If you don't have it, you can download R from [here](https://www.r-project.org/). Then you will need to install required R package.
 
 ```r
 install.packages("caret")
@@ -28,7 +28,7 @@ The data contains pre-sequencing lab metrics and post-sequencing bioinformatics 
 - RNA ng/ul: input RNA concentration 
 - Library ng/ul: pre-capture library concentration
 - Gene mapped reads: total number of reads mapped to genic regions
-- CPM > 2: total number of genes with Counts Per Million (cpm) bigger than 2. You can see the definition of CPM [here](https://www.reneshbedre.com/blog/expression_units.html)
+- TPM > 4: total number of genes with Counts Per Million (TPM) bigger than 4. You can see the definition of TPM [here](https://www.reneshbedre.com/blog/expression_units.html)
 - Median cor: spearman median correlation with the rest of samples within the cohort
 
 ## Define QC pass or fail based on bioinformatics metrics
@@ -36,7 +36,7 @@ The data contains pre-sequencing lab metrics and post-sequencing bioinformatics 
 QC status is determined based on the three bioinformatics metrics (Gene mapped reads, CPM > 2 & Median cor). 
 
 ```r
-sampleinfo$FILTER <- ifelse(sampleinfo$`Gene mapped reads` > 25*10^6 & sampleinfo$`CPM > 2` > 11,400 & sampleinfo$`Median cor` > 0.75,'PASS','FAIL')
+sampleinfo$FILTER <- ifelse(sampleinfo$`Gene mapped reads` > 25*10^6 & sampleinfo$`TPM > 4` > 11,400 & sampleinfo$`Median cor` > 0.75,'PASS','FAIL')
 ```
 
 User are encouraged to choose cutoffs based on their preference of stringency.
