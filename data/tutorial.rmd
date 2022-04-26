@@ -1,0 +1,89 @@
+---
+title: "FFPE input recommendation for RNAseq"
+author: Yuanhang (Leo) Liu
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  rmdformats::html_clean:
+    self_contained: true
+    thumbnails: true
+    lightbox: false
+    gallery: false
+    highlight: tango
+---
+
+
+# Data
+
+You can load the Additional file 7.xlsx under the data direcotry. It contains sample-related metrics including pre-sequencing lab metrics and post-sequencing bioinformatics metrics:
+
+1. ID: subject ID
+2. FFPE.years.range: years of FFPE storage 
+3. Batch: sequencing batch
+4. Group: sample group
+5. RNA.Concentration.Qubit: pre-sequencing RNA concentration in Qubit (ng/ul)
+6. Library.Concentration.Qubit: pre-capture library concentration in Qubit (ng/ul)
+7. Reads.mapped.to.genes: # of reads mapped to genic regions
+8. Mediancor: sample-wise median correlation of gene expression
+9. TPM4: # of genes with transcript per million (TPM) >4
+10. FILTER: PASS/FAIL filter defined by bioinformatics metrics
+11. DV50: the percentage of RNA fragments > 50 
+12. DV100: the percentage of RNA fragments > 100 
+13: DV200: the percentage of RNA fragments > 200 
+14: RIN: RNA Integrity Number
+
+# Installation
+
+All analysis is performed in R. If you don't have it, you can download R from [here](https://www.r-project.org/). Then you will need to install required R package if you don't have them installed.
+
+```{r eval=FALSE}
+install.packages("caret")
+install.packages("readxl")
+install.packages('rpart.plot')
+install.packages('caTools')
+```
+
+load require R packages
+
+```{r message=FALSE}
+library('caret')
+library('readxl')
+library('rpart.plot')
+library('caTools')
+```
+
+# Load data
+
+load data and remove technical control samples as those will not be used in the model buliding. 
+
+```{r}
+sampleinfo <- read_xlsx('Additional file 7.xlsx')
+sampleinfo <- as.data.frame(sampleinfo)
+sampleinfo <- sampleinfo[!sampleinfo$Group %in% c("FFPE technical control","FFzn technical control"),]
+storage.mode(sampleinfo$RNA.Concentration.Qubit) <- 'numeric'
+storage.mode(sampleinfo$Library.Concentration.Qubit) <- 'numeric'
+str(sampleinfo)
+```
+
+# Define QC pass or fail based on bioinformatics metrics
+
+QC status is determined based on the three bioinformatics metrics (Gene mapped reads, TPM > 2 & Median cor). User are encouraged to choose cutoffs based on their preference of stringency. For instance, one can require more # of gene mapped reads (30 million) and more # of expressed genes above 4 TPM (12000)
+
+
+```{r}
+sampleinfo$FILTER <- ifelse(sampleinfo$Reads.mapped.to.genes  > 30*10^6 & sampleinfo$TPM4 > 12000 & sampleinfo$Mediancor > 0.75,'PASS','FAIL')
+```
+
+
+## Bulid decision tree model using pre-sequencing lab metrics
+
+```{r}
+set.seed(1234)
+sample_split <- sample.split(Y = sampleinfo$FILTER, SplitRatio = 0.7)
+train_set <- subset(x = sampleinfo, sample_split == TRUE)
+test_set <- subset(x = sampleinfo, sample_split == FALSE)
+modelfit <- train(FILTER ~ RNA.Concentration.Qubit + Library.Concentration.Qubit,method='rpart',data=train_set, trControl = trainControl(method = "repeatedcv",repeats = 3),tuneLength=10)
+plot(modelfit)
+rpart.plot::rpart.plot(modelfit$finalModel, extra = 106)
+```
+
+
